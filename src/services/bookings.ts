@@ -12,6 +12,8 @@ export const bookingsService = {
         participants_count: number;
         total_amount: number;
         additional_info?: any;
+        status?: 'pending' | 'confirmed' | 'cancelled';
+        payment_status?: 'pending' | 'completed' | 'refunded';
     }) {
         const { data, error } = await supabase
             .from('bookings')

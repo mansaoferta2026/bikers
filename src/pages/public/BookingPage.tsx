@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CreditCard, Calendar } from 'lucide-react';
+import { CreditCard, Calendar, Check } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { eventsService } from '../../services/events';
@@ -156,7 +156,7 @@ export const BookingPage = () => {
                     {isFree ? (
                         <div className="space-y-6">
                             <div className="bg-green-50 text-green-700 p-4 rounded-lg flex items-start gap-3">
-                                <check className="h-5 w-5 mt-0.5" />
+                                <Check className="h-5 w-5 mt-0.5" />
                                 <div>
                                     <p className="font-medium">Este evento es gratuito.</p>
                                     <p className="text-sm mt-1">No se requiere información de pago. Confirma tu asistencia para reservar tu lugar.</p>
