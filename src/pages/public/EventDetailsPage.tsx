@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Calendar, MapPin, TrendingUp, User, Share2, ArrowLeft, Check, AlertCircle, Instagram, Video, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { eventsService } from '../../services/events';
+import { bookingsService } from '../../services/bookings';
 import type { Database } from '../../types/database.types';
 
 type Event = Database['public']['Tables']['events']['Row'];
@@ -12,6 +13,7 @@ export const EventDetailsPage = () => {
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [participantCount, setParticipantCount] = useState(0);
 
     useEffect(() => {
         if (id) {
@@ -22,8 +24,12 @@ export const EventDetailsPage = () => {
     const loadEvent = async (eventId: string) => {
         try {
             setLoading(true);
-            const data = await eventsService.getById(eventId);
-            setEvent(data);
+            const [eventData, count] = await Promise.all([
+                eventsService.getById(eventId),
+                bookingsService.getParticipantCount(eventId)
+            ]);
+            setEvent(eventData);
+            setParticipantCount(count);
         } catch (error) {
             console.error('Error loading event:', error);
         } finally {
@@ -230,7 +236,9 @@ export const EventDetailsPage = () => {
                         <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24 border border-violet-100">
                             <div className="text-center mb-6">
                                 <p className="text-sm text-muted-foreground mb-1">Precio por persona</p>
-                                <div className="text-4xl font-bold text-primary">${event.price}</div>
+                                <div className="text-4xl font-bold text-primary">
+                                    {event.price === 0 ? 'GRATIS' : `$${event.price}`}
+                                </div>
                             </div>
 
                             <div className="space-y-4 mb-6">
@@ -238,19 +246,36 @@ export const EventDetailsPage = () => {
                                     <span className="text-slate-600">Cupos totales:</span>
                                     <span className="font-medium">{event.max_participants}</span>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-2">
-                                    {/* <div className="bg-primary h-2 rounded-full" style={{ width: '50%' }} /> */}
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-600">Cupos disponibles:</span>
+                                    <span className={`font-medium ${event.max_participants && participantCount >= event.max_participants ? 'text-red-600' : 'text-green-600'}`}>
+                                        {event.max_participants ? Math.max(0, event.max_participants - participantCount) : 'Unlimited'}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                    <div
+                                        className={`h-2 rounded-full ${event.max_participants && participantCount >= event.max_participants ? 'bg-red-500' : 'bg-primary'}`}
+                                        style={{ width: `${event.max_participants ? Math.min(100, (participantCount / event.max_participants) * 100) : 0}%` }}
+                                    />
                                 </div>
                             </div>
 
-                            <Link to={`/booking/${event.id}`}>
-                                <Button className="w-full h-12 text-lg font-semibold shadow-lg shadow-primary/25 mb-4">
-                                    Reservar Cupo
+                            {event.max_participants && participantCount >= event.max_participants ? (
+                                <Button className="w-full h-12 text-lg font-semibold shadow-lg bg-gray-400 cursor-not-allowed hover:bg-gray-400 mb-4" disabled>
+                                    AGOTADO
                                 </Button>
-                            </Link>
+                            ) : (
+                                <Link to={`/booking/${event.id}`}>
+                                    <Button className="w-full h-12 text-lg font-semibold shadow-lg shadow-primary/25 mb-4">
+                                        Reservar Cupo
+                                    </Button>
+                                </Link>
+                            )}
 
                             <p className="text-xs text-center text-muted-foreground">
-                                Reserva segura. Puedes cancelar hasta 48hs antes.
+                                {event.price === 0
+                                    ? 'Reserva gratuita. Cupos limitados.'
+                                    : 'Reserva segura. Puedes cancelar hasta 48hs antes.'}
                             </p>
                         </div>
                     </div>

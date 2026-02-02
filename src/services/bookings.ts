@@ -49,6 +49,20 @@ export const bookingsService = {
         return data;
     },
 
+    async getParticipantCount(eventId: string) {
+        const { count, error } = await supabase
+            .from('bookings')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', eventId)
+            .neq('status', 'cancelled');
+
+        if (error) {
+            console.error('Error counting participants:', error);
+            return 0;
+        }
+        return count || 0;
+    },
+
     async getByUserId(userId: string) {
         const { data, error } = await supabase
             .from('bookings')
