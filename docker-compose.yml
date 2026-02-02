@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: bikers_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: always
+    env_file:
+      - .env
