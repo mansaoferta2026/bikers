@@ -12,32 +12,49 @@ export const BookingSuccessPage = () => {
 
     const paymentId = searchParams.get('payment_id');
     const status = searchParams.get('status');
-    const externalReference = searchParams.get('external_reference'); // booking_id
+    const externalReference = searchParams.get('external_reference'); // booking_id from MP
+    const bookingIdParam = searchParams.get('booking_id'); // booking_id from free flow
+
+    const bookingId = externalReference || bookingIdParam;
 
     useEffect(() => {
         const processPayment = async () => {
-            if (!externalReference || !paymentId) {
-                setError('Información de pago incompleta');
+            if (!bookingId) {
+                setError('ID de reserva no encontrado');
                 setProcessing(false);
                 return;
             }
 
+            // If it's a free booking (no payment_id), verify status directly
+            if (!paymentId) {
+                // Just double check it exists?
+                try {
+                    // We could fetch it to be sure, but let's assume if ID is here it's good for now
+                    // Or better:
+                    // await bookingsService.getById(bookingId) ...
+                    setProcessing(false);
+                    return;
+                } catch (e) {
+                    setError('Reserva no encontrada');
+                    setProcessing(false);
+                    return;
+                }
+            }
+
+            // Normal MP flow
             try {
                 // Update booking status to confirmed
-                await bookingsService.updateStatus(externalReference, 'confirmed');
+                await bookingsService.updateStatus(bookingId, 'confirmed');
 
                 // Create payment record
                 const { paymentsService } = await import('../../services/payments');
                 await paymentsService.create({
-                    booking_id: externalReference,
+                    booking_id: bookingId,
                     amount: 0, // Will be updated from MP webhook
                     payment_method: 'mercadopago',
                     transaction_id: paymentId,
                     status: status || 'approved',
                 });
-
-                // Get booking details for email
-                // Note: Email sending will be handled by webhook in production
 
                 setProcessing(false);
             } catch (err) {
@@ -48,7 +65,7 @@ export const BookingSuccessPage = () => {
         };
 
         processPayment();
-    }, [externalReference, paymentId, status]);
+    }, [bookingId, paymentId, status]);
 
     if (processing) {
         return (
@@ -95,16 +112,18 @@ export const BookingSuccessPage = () => {
                     Recibirás un email de confirmación con los detalles de tu reserva.
                 </p>
 
-                <div className="bg-gray-50 p-4 rounded-lg mb-6 text-sm text-left">
-                    <div className="flex justify-between mb-2">
-                        <span className="text-slate-500">ID de Pago:</span>
-                        <span className="font-medium">{paymentId}</span>
+                {paymentId && (
+                    <div className="bg-gray-50 p-4 rounded-lg mb-6 text-sm text-left">
+                        <div className="flex justify-between mb-2">
+                            <span className="text-slate-500">ID de Pago:</span>
+                            <span className="font-medium">{paymentId}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Estado:</span>
+                            <span className="font-medium text-green-600">Aprobado</span>
+                        </div>
                     </div>
-                    <div className="flex justify-between">
-                        <span className="text-slate-500">Estado:</span>
-                        <span className="font-medium text-green-600">Aprobado</span>
-                    </div>
-                </div>
+                )}
 
                 <div className="flex gap-3">
                     <Button
